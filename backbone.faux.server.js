@@ -38,6 +38,11 @@
 		// Indicates whether the faux-server is currently enabled
 		isEnabled = true,
 
+		// Indicates whether models automatically delegate to the faux-server, or
+		// whether they should use nativeSync by default.  This option may be overriden
+		// on a model basis by setting model.syncSelector to 'native' or 'faux-server'.
+		defaultSync = 'faux-server',
+
 		// The default-route, that is to say, a route that contains the default handler if one
 		//  is defined. The default handler is invoked when no matching route is found for some
 		//  <model-URL, sync-method> pair and may be defined by setDefaultHandler. A null value
@@ -99,7 +104,10 @@
 	Backbone.sync = function (crudMethod, model, options) {
 
 		// If faux-server is disabled, fall back to original sync
-		if (!isEnabled) { return nativeSync.call(model, crudMethod, model, options); }
+		var syncMethod = !!model.syncMethod ? model.syncMethod : defaultSync;
+		if (!isEnabled || syncMethod === 'native') { 
+			return nativeSync.call(model, crudMethod, model, options); 
+		}
 		
 		var c = { // Handler context
 				data: null,
@@ -287,6 +295,18 @@
 		enable: function (shouldEnable) {
 			isEnabled = _.isUndefined(shouldEnable) || shouldEnable;
 			return this; // Chain
+		},
+
+		/**
+		 * Set the default sync method to be used.  When 'native', models must opt-in to the mock server
+		 * on a case-by-case basis.  The default is 'faux-server'.
+		 * @param {string} syncMethod Whether to use the native sync implementation or the mock 
+		 * implementation by default.. Omit the parameter to use the 'faux-server' by default.
+		 * @return {object} The faux-server
+		 */
+		setDefaultSync: function (syncMethod) {
+			defaultSync = _.isUndefined(syncMethod) ? 'faux-server' : syncMethod;
+			return this;
 		},
 
 		/**

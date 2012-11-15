@@ -434,4 +434,64 @@
 
 		book.save();
 	});
+
+	test("Faux-server or native may be selected on a case-by-case basis", 5, function () {
+		var book = this.createDummyBook();
+		book.urlRoot = "library-app/books";
+
+		fauxServer.addRoute("createBook", "library-app/books", "*", function () {
+			ok(true, "Handler called when 'faux-server' is the default sync method");
+		});
+
+		book.save();
+
+		fauxServer.setDefaultSync('native');
+		fauxServer.addRoute("createBook", "library-app/books", "*", function () {
+			ok(false, "Fail: Handler called when the default sync method is 'native'");
+		});
+		Backbone.setDomLibrary({
+			ajax: function () {
+				ok(true, "Native sync called when the default sync method is 'native'");
+			}
+		});
+
+		book.save();
+
+		book.syncMethod = 'faux-server';
+		fauxServer.addRoute("createBook", "library-app/books", "*", function () {
+			ok(true, "Handler called when overriden by model");
+		});
+		Backbone.setDomLibrary({
+			ajax: function () {
+				ok(false, "Fail: Native sync called when overriden by model");
+			}
+		});
+
+		book.save();
+
+		delete book.syncMethod;
+		fauxServer.setDefaultSync();
+		fauxServer.addRoute("createBook", "library-app/books", "*", function () {
+			ok(true, "Handler called when faux-server restored to default");
+		});
+		Backbone.setDomLibrary({
+			ajax: function () {
+				ok(false, "Fail: Native sync called when faux-server restored to default");
+			}
+		});
+
+		book.save();
+
+		book.syncMethod = 'native';
+		fauxServer.addRoute("createBook", "library-app/books", "*", function () {
+			ok(false, "Fail: Handler called when the default sync method is 'faux-server' and the model has overriden it with 'native'");
+		});
+		Backbone.setDomLibrary({
+			ajax: function () {
+				ok(true, "Native sync called when the default sync method is 'faux-server' and the model has overriden it with 'native'");
+			}
+		});
+
+		book.save();		
+	});
 }());
